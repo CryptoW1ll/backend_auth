@@ -58,7 +58,7 @@ const sessionConfig = {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Adjust based on environment
   }
 };
 
@@ -71,6 +71,14 @@ if (redisClient) {
 }
 
 app.use(session(sessionConfig));
+
+// Log when a session is created
+app.use((req, res, next) => {
+  if (req.session && req.session.id && req.session.isNew) {
+    console.log(`🆕 New session created: ${req.session.id}`);
+  }
+  next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
