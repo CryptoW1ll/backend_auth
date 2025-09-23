@@ -83,6 +83,17 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// Add this right after your session middleware
+app.use((req, res, next) => {
+  console.log('=== SESSION DEBUG ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session exists:', !!req.session);
+  console.log('Cookies received:', req.headers.cookie || 'None');
+  console.log('====================');
+  next();
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
