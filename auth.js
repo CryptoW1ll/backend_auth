@@ -18,11 +18,11 @@ function isValidCodeVerifier(verifier) {
   return verifier && typeof verifier === 'string' && verifier.length >= 43;
 }
 
-// POST /api/auth/
-                      // Initiates the OAuth flow by redirecting to Kick's authorization endpoint
-router.post('/kick/auth', (req, res) => {
+// GET /api/auth/
+// Initiates the OAuth flow by redirecting to Kick's authorization endpoint
+router.get('/kick/auth', (req, res) => {
   try {
-    const { state, code_challenge, redirect_uri } = req.body;
+    const { state, code_challenge, redirect_uri } = req.query;
     const CLIENT_ID = process.env.KICK_CLIENT_ID;
     const AUTH_URL = 'https://id.kick.com/oauth/authorize';
 
