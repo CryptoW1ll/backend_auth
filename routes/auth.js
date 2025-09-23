@@ -134,6 +134,7 @@ router.post('/kick/exchange', async (req, res) => {
     // Exchange code for tokens with Kick
     const tokenResponse = await fetch('https://id.kick.com/oauth/token', {
       method: 'POST',
+      credentials: 'include', // ← CRITICAL
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
