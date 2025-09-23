@@ -59,10 +59,8 @@ const sessionConfig = {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24,
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: process.env.NODE_ENV === 'production' ? '.echelonstudio.co.nz' : undefined
-    //   domain: '.echelonstudio.co.nz' // Added domain for cookie
-  }};
-  
+  }
+};
 
 
 // Use Redis for session storage if available
