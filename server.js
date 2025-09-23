@@ -55,13 +55,15 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Adjust based on environment
-    domain: '.echelonstudio.co.nz' // Added domain for cookie
-  }
-};
+    maxAge: 1000 * 60 * 60 * 24,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.echelonstudio.co.nz' : undefined
+    //   domain: '.echelonstudio.co.nz' // Added domain for cookie
+  }};
+  
+
 
 // Use Redis for session storage if available
 if (redisClient) {
@@ -75,6 +77,8 @@ app.use(session(sessionConfig));
 
 // Log when a session is created
 app.use((req, res, next) => {
+  console.log('Origin:', req.headers.origin);
+  console.log('Cookies:', req.headers.cookie);
   if (req.session && req.session.id && req.session.isNew) {
     console.log(`🆕 New session created: ${req.session.id}`);
   }
