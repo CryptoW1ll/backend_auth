@@ -1,0 +1,117 @@
+const express = require('express');
+const cors = require('cors');
+const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+const { createClient } = require('redis');
+require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Redis client for session storage
+let redisClient;
+if (process.env.REDIS_URL) {
+  redisClient = createClient({ url: process.env.REDIS_URL });
+  redisClient.connect().catch(console.error);
+}
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://echelonstudio.co.nz'
+];
+
+// Add additional origins from environment variable if set
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Session configuration
+const sessionConfig = {
+  name: 'kick.oauth.session',
+  secret: process.env.SESSION_SECRET || 'your-super-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
+};
+
+// Use Redis for session storage if available
+if (redisClient) {
+  sessionConfig.store = new RedisStore({ client: redisClient });
+  console.log('✅ Using Redis for session storage');
+} else {
+  console.log('⚠️  Using memory store for sessions (development only)');
+}
+
+app.use(session(sessionConfig));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    session: !!req.session,
+    redis: !!redisClient
+  });
+});
+
+// Auth routes
+app.use('/api/auth', authRoutes);
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Server error:', error);
+  res.status(500).json({
+    error: 'internal_error',
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Internal server error' 
+      : error.message
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'not_found',
+    message: 'Endpoint not found'
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Kick OAuth Backend running on port ${PORT}`);
+  console.log(`📍 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth/*`);
+  
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🛡️  Running in PRODUCTION mode');
+  } else {
+    console.log('🔧 Running in DEVELOPMENT mode');
+  }
+});
