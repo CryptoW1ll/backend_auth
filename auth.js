@@ -19,7 +19,7 @@ function isValidCodeVerifier(verifier) {
 }
 
 // POST /api/auth/
-// Initiates the OAuth flow by redirecting to Kick's authorization endpoint
+                      // Initiates the OAuth flow by redirecting to Kick's authorization endpoint
 router.post('/kick/auth', (req, res) => {
   try {
     const { state, code_challenge, redirect_uri } = req.body;

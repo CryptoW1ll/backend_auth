@@ -5,7 +5,7 @@ const RedisStore = require('connect-redis').default;
 const { createClient } = require('redis');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
