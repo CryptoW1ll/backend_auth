@@ -58,7 +58,8 @@ const sessionConfig = {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Adjust based on environment
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Adjust based on environment
+    domain: '.echelonstudio.co.nz' // Added domain for cookie
   }
 };
 
