@@ -1,0 +1,4 @@
+kickapi/.env
+kickapi/appsettings.json
+/kickapi/bin
+/kickapi/obj

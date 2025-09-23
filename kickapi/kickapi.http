@@ -1,0 +1,6 @@
+@kickapi_HostAddress = http://localhost:5286
+
+GET {{kickapi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

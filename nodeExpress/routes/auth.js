@@ -18,6 +18,63 @@ function isValidCodeVerifier(verifier) {
   return verifier && typeof verifier === 'string' && verifier.length >= 43;
 }
 
+// POST /api/auth/
+// Initiates the OAuth flow by redirecting to Kick's authorization endpoint
+router.post('/kick/auth', (req, res) => {
+  try {
+    const { state, code_challenge, redirect_uri } = req.body;
+    const CLIENT_ID = process.env.KICK_CLIENT_ID;
+    const AUTH_URL = 'https://id.kick.com/oauth/authorize';
+
+    // Validation
+    if (!CLIENT_ID) {
+      console.error('❌ Missing Kick OAuth Client ID in server environment');
+      return res.status(500).json({
+        error: 'server_configuration',
+        message: 'OAuth not properly configured on server'
+      });
+    }
+    if (!isValidState(state)) {
+      return res.status(400).json({
+        error: 'invalid_state',
+        message: 'State parameter is required and must be at least 8 characters'
+      });
+    }
+    if (!isValidCodeVerifier(code_challenge)) {
+      return res.status(400).json({
+        error: 'invalid_code_challenge',
+        message: 'Code challenge is required and must be at least 43 characters'
+      });
+    }
+    if (!redirect_uri || typeof redirect_uri !== 'string') {
+      return res.status(400).json({
+        error: 'invalid_redirect_uri',
+        message: 'A valid redirect_uri is required'
+      });
+    }
+
+    // Construct authorization URL
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: CLIENT_ID,
+      redirect_uri: redirect_uri,
+      scope: 'user:read', // Adjust scopes as needed
+      state: state,
+      code_challenge: code_challenge,
+      code_challenge_method: 'S256'
+    });
+    const authorizationUrl = `${AUTH_URL}?${params.toString()}`;
+    console.log(`🔗 Redirecting to Kick OAuth: ${authorizationUrl}`);
+    res.json({ authorizationUrl });
+  } catch (error) {
+    console.error('❌ Error in /kick/auth:', error);
+    res.status(500).json({
+      error: 'internal_error',
+      message: 'Failed to initiate OAuth flow'
+    });
+  }
+});
+
 // POST /api/auth/kick/store-pkce
 // Stores PKCE data securely for OAuth flow
 router.post('/kick/store-pkce', (req, res) => {
@@ -191,6 +248,7 @@ router.post('/kick/exchange', async (req, res) => {
 });
 
 // GET /api/auth/kick/status
+
 // Check current authentication status
 router.get('/kick/status', (req, res) => {
   const tokens = req.session.kickTokens;
