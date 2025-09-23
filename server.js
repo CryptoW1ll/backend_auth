@@ -23,8 +23,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 const allowedOrigins = [
-  'http://localhost:5173',
-  'https://echelonstudio.co.nz'
+  'http://localhost:3000',
+  'https://id.kick.com/oauth/authorize',
 ];
 
 // Add additional origins from environment variable if set
@@ -85,14 +85,14 @@ app.use((req, res, next) => {
 
 
 // Add this right after your session middleware
-app.use((req, res, next) => {
-  console.log('=== SESSION DEBUG ===');
-  console.log('Session ID:', req.sessionID);
-  console.log('Session exists:', !!req.session);
-  console.log('Cookies received:', req.headers.cookie || 'None');
-  console.log('====================');
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('=== SESSION DEBUG ===');
+//   console.log('Session ID:', req.sessionID);
+//   console.log('Session exists:', !!req.session);
+//   console.log('Cookies received:', req.headers.cookie || 'None');
+//   console.log('====================');
+//   next();
+// });
 
 // Health check endpoint
 app.get('/health', (req, res) => {

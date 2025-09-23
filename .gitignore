@@ -3,3 +3,4 @@ kickapi/appsettings.json
 /kickapi/bin
 /kickapi/obj
 /node_modules
+.env
