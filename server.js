@@ -150,3 +150,16 @@ app.listen(PORT, () => {
     console.log('🔧 Running in DEVELOPMENT mode');
   }
 });
+
+console.log('About to save session...');
+req.session.save((err) => {
+  console.log('Session save callback called');
+  if (err) {
+    console.error('❌ Error saving session:', err);
+    return res.status(500).json({
+      error: 'internal_error',
+      message: 'Failed to save session'
+    });
+  }
+  res.json({ authorizationUrl });
+});
