@@ -18,6 +18,24 @@ function isValidCodeVerifier(verifier) {
   return verifier && typeof verifier === 'string' && verifier.length >= 43;
 }
 
+// Generate a random code_verifier (43-128 chars)
+function generateCodeVerifier(length = 64) {
+  return base64urlEncode(crypto.randomBytes(length));
+}
+
+// Generate a code_challenge from code_verifier
+function generateCodeChallenge(codeVerifier) {
+  return base64urlEncode(crypto.createHash('sha256').update(codeVerifier).digest());
+}
+
+// Base64url encode (RFC 7636)
+function base64urlEncode(buffer) {
+  return buffer.toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
 // GET /api/auth/
 // Initiates the OAuth flow by redirecting to Kick's authorization endpoint
 router.get('/kick/auth', (req, res) => {
@@ -71,6 +89,116 @@ router.get('/kick/auth', (req, res) => {
     res.status(500).json({
       error: 'internal_error',
       message: 'Failed to initiate OAuth flow'
+    });
+  }
+});
+
+// GET /api/auth/kick/callback
+// Handles the OAuth redirect, exchanges code for tokens
+router.get('/kick/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    const redirect_uri = req.protocol + '://' + req.get('host') + req.originalUrl.split('?')[0];
+
+    // Validation
+    if (!code || !state) {
+      return res.status(400).json({
+        error: 'missing_parameters',
+        message: 'Code and state are required'
+      });
+    }
+
+    // Find PKCE data by session (state is stored in session)
+    const sessionId = req.session.oauthSessionId;
+    if (!sessionId) {
+      return res.status(400).json({
+        error: 'no_session',
+        message: 'No OAuth session found'
+      });
+    }
+    const pkceData = pkceStorage.get(sessionId);
+    if (!pkceData) {
+      return res.status(400).json({
+        error: 'no_pkce_data',
+        message: 'No PKCE data found for session'
+      });
+    }
+    if (pkceData.state !== state) {
+      return res.status(400).json({
+        error: 'state_mismatch',
+        message: 'State does not match session'
+      });
+    }
+    if (Date.now() > pkceData.expiresAt) {
+      pkceStorage.delete(sessionId);
+      return res.status(400).json({
+        error: 'pkce_expired',
+        message: 'PKCE data has expired'
+      });
+    }
+
+    // Server-side OAuth credentials
+    const CLIENT_ID = process.env.KICK_CLIENT_ID;
+    const CLIENT_SECRET = process.env.KICK_CLIENT_SECRET;
+    if (!CLIENT_ID || !CLIENT_SECRET) {
+      console.error('❌ Missing Kick OAuth credentials in server environment');
+      return res.status(500).json({
+        error: 'server_configuration',
+        message: 'OAuth not properly configured on server'
+      });
+    }
+
+    // Exchange code for tokens with Kick
+    const tokenResponse = await fetch('https://id.kick.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: pkceData.redirect_uri || redirect_uri,
+        code_verifier: pkceData.codeVerifier,
+        code: code,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json().catch(() => ({}));
+      console.error('❌ Kick token exchange failed:', errorData);
+      return res.status(400).json({
+        error: errorData.error || 'token_exchange_failed',
+        message: errorData.error_description || 'Failed to exchange code for tokens'
+      });
+    }
+
+    const tokens = await tokenResponse.json();
+    console.log(`✅ Successfully obtained tokens for session: ${sessionId}`);
+
+    // Clean up PKCE data
+    pkceStorage.delete(sessionId);
+
+    // Store tokens in session (or database for persistence)
+    req.session.kickTokens = {
+      access_token: tokens.access_token,
+      expires_at: Date.now() + (tokens.expires_in * 1000),
+      scope: tokens.scope
+    };
+
+    // Respond with success (or redirect to frontend)
+    res.json({
+      success: true,
+      access_token: tokens.access_token,
+      expires_in: tokens.expires_in,
+      scope: tokens.scope,
+      token_type: tokens.token_type || 'Bearer'
+    });
+  } catch (error) {
+    console.error('❌ Error in /kick/callback:', error);
+    res.status(500).json({
+      error: 'internal_error',
+      message: 'Token exchange failed'
     });
   }
 });
