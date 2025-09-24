@@ -40,7 +40,7 @@ function base64urlEncode(buffer) {
 // Initiates the OAuth flow by redirecting to Kick's authorization endpoint
 router.get('/kick/auth', (req, res) => {
   try {
-      req.session.initiated = true; // Ensure session is saved
+    req.session.initiated = true; // Ensure session is saved
     // Use a fixed redirect_uri for Unity client (or get from config if needed)
     const redirect_uri = 'https://backend-auth-z6z0.onrender.com/api/auth/kick/callback';
     const CLIENT_ID = process.env.KICK_CLIENT_ID;
@@ -101,7 +101,18 @@ router.get('/kick/auth', (req, res) => {
     const authorizationUrl = `${AUTH_URL}?${params.toString()}`;
     console.log('Authorization URL:', authorizationUrl);
     console.log('--- /kick/auth DEBUG END ---');
-    res.json({ authorizationUrl });
+
+    // Force session save to ensure Set-Cookie header is sent
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Error saving session:', err);
+        return res.status(500).json({
+          error: 'internal_error',
+          message: 'Failed to save session'
+        });
+      }
+      res.json({ authorizationUrl });
+    });
   } catch (error) {
     console.error('❌ Error in /kick/auth:', error);
     res.status(500).json({
