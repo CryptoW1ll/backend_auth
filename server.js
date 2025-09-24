@@ -73,12 +73,12 @@ const sessionConfig = {
 
 
 // Use Redis for session storage if available
-if (redisClient) {
-  sessionConfig.store = new RedisStore({ client: redisClient });
-  console.log('✅ Using Redis for session storage');
-} else {
-  console.log('⚠️  Using memory store for sessions (development only)');
-}
+// if (redisClient) {
+//   sessionConfig.store = new RedisStore({ client: redisClient });
+//   console.log('✅ Using Redis for session storage');
+// } else {
+//   console.log('⚠️  Using memory store for sessions (development only)');
+// }
 
 app.use(session(sessionConfig));
 
