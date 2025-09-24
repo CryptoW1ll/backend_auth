@@ -1,5 +1,3 @@
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Register IHttpClientFactory for controllers that need it
@@ -77,6 +75,9 @@ app.UseHttpsRedirection();
 // Health check endpoint
 app.MapGet("/health", (HttpContext context) =>
 {
+    // Force session to be created by writing a value
+    context.Session.SetString("health_check", "ok");
+
     return Results.Json(new
     {
         status = "ok",
