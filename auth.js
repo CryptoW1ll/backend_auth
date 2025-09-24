@@ -40,7 +40,16 @@ function base64urlEncode(buffer) {
 // Initiates the OAuth flow by redirecting to Kick's authorization endpoint
 router.get('/kick/auth', (req, res) => {
   try {
+    
     req.session.initiated = true; // Ensure session is saved
+    console.log('Session at /kick/auth:', req.session);
+    if (!req.session) {
+      return res.status(500).json({
+        error: 'no_session',
+        message: 'Session not initialized'
+      });
+    }
+    
     // Use a fixed redirect_uri for Unity client (or get from config if needed)
     const redirect_uri = 'https://backend-auth-z6z0.onrender.com/api/auth/kick/callback';
     const CLIENT_ID = process.env.KICK_CLIENT_ID;
