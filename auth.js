@@ -103,6 +103,8 @@ router.get('/kick/auth', (req, res) => {
     console.log('--- /kick/auth DEBUG END ---');
 
     // Force session save to ensure Set-Cookie header is sent
+    
+    console.log('About to save session...');
     req.session.save((err) => {
       if (err) {
         console.error('❌ Error saving session:', err);

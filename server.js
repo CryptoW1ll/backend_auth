@@ -84,15 +84,15 @@ app.use(session(sessionConfig));
 
 // Log when a session is created
 app.use((req, res, next) => {
-  console.log('Origin:', req.headers.origin);
-  console.log('Cookies:', req.headers.cookie);
+  // console.log('Origin:', req.headers.origin);
+  // console.log('Cookies:', req.headers.cookie);
   if (req.session && req.session.id && req.session.isNew) 
   {
     console.log(`🆕 New session created: ${req.session.id}`);
   }
-  console.log('Session data:', req.session);
-  console.log('Session ID:', req.sessionID);
-  console.log('Is new session:', req.session.isNew);
+  // console.log('Session data:', req.session);
+  // console.log('Session ID:', req.sessionID);
+  // console.log('Is new session:', req.session.isNew);
   next();
 });
 
@@ -151,15 +151,3 @@ app.listen(PORT, () => {
   }
 });
 
-console.log('About to save session...');
-req.session.save((err) => {
-  console.log('Session save callback called');
-  if (err) {
-    console.error('❌ Error saving session:', err);
-    return res.status(500).json({
-      error: 'internal_error',
-      message: 'Failed to save session'
-    });
-  }
-  res.json({ authorizationUrl });
-});
