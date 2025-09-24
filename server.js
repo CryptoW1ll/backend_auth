@@ -77,9 +77,13 @@ app.use(session(sessionConfig));
 app.use((req, res, next) => {
   console.log('Origin:', req.headers.origin);
   console.log('Cookies:', req.headers.cookie);
-  if (req.session && req.session.id && req.session.isNew) {
+  if (req.session && req.session.id && req.session.isNew) 
+  {
     console.log(`🆕 New session created: ${req.session.id}`);
   }
+  console.log('Session data:', req.session);
+  console.log('Session ID:', req.sessionID);
+  console.log('Is new session:', req.session.isNew);
   next();
 });
 
