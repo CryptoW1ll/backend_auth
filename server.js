@@ -53,12 +53,12 @@ const sessionConfig = {
   name: 'kick.oauth.session',
   secret: process.env.SESSION_SECRET || 'your-super-secret-key-change-this',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // saveUninitialized: true (not recommended for all cases), or make sure you set something on req.session before responding.
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Set to true if using HTTPS
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'none' // Required for cross-site cookies (OAuth, third-party clients)
   }
 };
 
