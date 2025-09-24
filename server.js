@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const RedisStore = require('connect-redis').default;
-const { createClient } = require('redis');
+// const RedisStore = require('connect-redis').default;
+// const { createClient } = require('redis');
 require('dotenv').config();
 
 const authRoutes = require('./auth');
@@ -10,12 +10,12 @@ const authRoutes = require('./auth');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Redis client for session storage
-let redisClient;
-if (process.env.REDIS_URL) {
-  redisClient = createClient({ url: process.env.REDIS_URL });
-  redisClient.connect().catch(console.error);
-}
+// Redis client for session storage (DISABLED)
+// let redisClient;
+// if (process.env.REDIS_URL) {
+//   redisClient = createClient({ url: process.env.REDIS_URL });
+//   redisClient.connect().catch(console.error);
+// }
 
 // Middleware
 app.use(express.json());
@@ -72,13 +72,11 @@ const sessionConfig = {
 };
 
 
-// Use Redis for session storage if available
-// if (redisClient) {
-//   sessionConfig.store = new RedisStore({ client: redisClient });
-//   console.log('✅ Using Redis for session storage');
-// } else {
-//   console.log('⚠️  Using memory store for sessions (development only)');
-// }
+
+// Always use in-memory session store
+if (process.env.NODE_ENV === 'production') {
+  console.warn('⚠️  WARNING: Using in-memory session store in production. This is NOT recommended. Sessions will be lost on server restart and do not scale.');
+}
 
 app.use(session(sessionConfig));
 
