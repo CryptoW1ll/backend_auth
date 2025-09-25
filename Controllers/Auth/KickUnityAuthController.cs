@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -18,7 +17,7 @@ namespace kickapi.Controllers.Auth
         private static ConcurrentDictionary<string, SessionData> sessionStore = new();
         private const string SessionCookieName = "kick_session_id";
         private const string ClientId = "01K5QJW9QDC6TJS4DB55KQ5CPP";
-        private const string ClientSecret = ""; // Set this securely in production
+        private static readonly string ClientSecret = Environment.GetEnvironmentVariable("KICK_CLIENT_SECRET") ?? "";
         private const string RedirectUri = "https://backend-auth-d9v1.onrender.com/api/auth/kick/callback";
         private static readonly List<string> DefaultScopes = new() { "user:read", "chat:write" };
 
