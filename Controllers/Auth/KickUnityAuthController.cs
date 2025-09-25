@@ -24,7 +24,7 @@ namespace kickapi.Controllers.Auth
         {
             try
             {
-                DotNetEnv.Env.Load();
+                //DotNetEnv.Env.Load();
                 ClientSecret = Environment.GetEnvironmentVariable("KICK_CLIENT_SECRET") ?? string.Empty;
             }
             catch (Exception ex)
