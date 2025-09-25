@@ -18,7 +18,21 @@ namespace kickapi.Controllers.Auth
         private static ConcurrentDictionary<string, SessionData> sessionStore = new();
         private const string SessionCookieName = "kick_session_id";
         private const string ClientId = "01K5QJW9QDC6TJS4DB55KQ5CPP";
-        private const string ClientSecret = ""; // Set this securely in production
+        private static readonly string ClientSecret;
+        // Static constructor to load environment variables
+        static KickUnityAuthController()
+        {
+            try
+            {
+                DotNetEnv.Env.Load();
+                ClientSecret = Environment.GetEnvironmentVariable("KICK_CLIENT_SECRET") ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[KickUnityAuthController] Failed to load .env: {ex.Message}");
+                ClientSecret = string.Empty;
+            }
+        }
         private const string RedirectUri = "https://backend-auth-d9v1.onrender.com/api/auth/kick/callback";
         private static readonly List<string> DefaultScopes = new() { "user:read", "chat:write" };
 
@@ -87,7 +101,7 @@ namespace kickapi.Controllers.Auth
                 }
 
                 session.AuthCode = code;
-                
+
                 // Exchange code for tokens using PKCE
                 var authGenerator = new KickOAuthGenerator();
                 try
