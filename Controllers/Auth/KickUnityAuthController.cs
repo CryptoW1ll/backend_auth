@@ -85,31 +85,44 @@ namespace kickapi.Controllers.Auth
                     Log($"[Callback] Invalid state for sessionId: {sessionId}. Expected: {session.State}, Received: {state}");
                     return BadRequest("Invalid state");
                 }
+
                 session.AuthCode = code;
+                
                 // Exchange code for tokens using PKCE
                 var authGenerator = new KickOAuthGenerator();
-                var result = await authGenerator.ExchangeCodeForTokenAsync(
-                    code,
-                    ClientId,
-                    ClientSecret,
-                    RedirectUri,
-                    state,
-                    session.CodeVerifier
-                );
-                if (result.IsSuccess && result.Value != null)
+                try
                 {
-                    session.AccessToken = result.Value.AccessToken;
-                    session.RefreshToken = result.Value.RefreshToken;
-                    session.Scope = result.Value.Scope;
-                    session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
-                    Log($"[Callback] Tokens set for sessionId: {sessionId}. AccessToken: {session.AccessToken != null}, RefreshToken: {session.RefreshToken != null}");
-                }
-                else
+                    var result = await authGenerator.ExchangeCodeForTokenAsync(
+                        code,
+                        ClientId,
+                        ClientSecret,
+                        RedirectUri,
+                        state,
+                        session.CodeVerifier
+                    );
+
+                     
+                    if (result.IsSuccess && result.Value != null)
+                    {
+                        session.AccessToken = result.Value.AccessToken;
+                        session.RefreshToken = result.Value.RefreshToken;
+                        session.Scope = result.Value.Scope;
+                        session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
+                        Log($"[Callback] Tokens set for sessionId: {sessionId}. AccessToken: {session.AccessToken != null}, RefreshToken: {session.RefreshToken != null}");
+                    }
+                    else
+                    {
+                        Log($"[Callback] Token exchange failed for sessionId: {sessionId}. Result: {JsonSerializer.Serialize(result)}");
+                    }
+                    // Optionally, redirect to a success page
+                    return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
+                    }
+                catch (Exception ex)
                 {
-                    Log($"[Callback] Token exchange failed for sessionId: {sessionId}. Result: {JsonSerializer.Serialize(result)}");
+                    Log($"[Callback] Exception during token exchange for sessionId: {sessionId}. Exception: {ex.Message}\n{ex.StackTrace}");
+                    return StatusCode(500, new { error = "token_exchange_failed", message = ex.Message, stackTrace = ex.StackTrace });
                 }
-                // Optionally, redirect to a success page
-                return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
+               
             }
             catch (Exception ex)
             {
