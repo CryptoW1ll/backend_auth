@@ -41,7 +41,7 @@ namespace kickapi.Controllers.Auth
             string state = Guid.NewGuid().ToString("N");
             var authGenerator = new KickOAuthGenerator();
             var url = authGenerator.GetAuthorizationUri(
-                RedirectUri,
+                RedirectUri + "?session=" + sessionId,
                 ClientId,
                 DefaultScopes,
                 out var codeVerifier,
@@ -54,10 +54,15 @@ namespace kickapi.Controllers.Auth
 
         // 2. Kick redirects here after user authenticates
         [HttpGet("callback")]
-        public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state)
+        public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state, [FromQuery(Name = "session")] string? sessionId = null)
         {
-            if (!Request.Cookies.TryGetValue(SessionCookieName, out var sessionId))
-                return BadRequest("Missing session cookie");
+            // Prefer sessionId from query, fallback to cookie
+            if (string.IsNullOrEmpty(sessionId))
+            {
+                Request.Cookies.TryGetValue(SessionCookieName, out sessionId);
+            }
+            if (string.IsNullOrEmpty(sessionId))
+                return BadRequest("Missing session id");
             if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
                 return BadRequest("Session not found");
             if (session.State != state)
