@@ -59,7 +59,11 @@ namespace kickapi.Controllers.Auth
         }
 
         // 2. Kick redirects here after user authenticates
-        [HttpGet("callback")]
+
+        /*
+         missing session id
+        */
+        [HttpGet("callback1")]
         public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state)
         {
             if (!Request.Cookies.TryGetValue(SessionCookieName, out var sessionId))
@@ -90,8 +94,10 @@ namespace kickapi.Controllers.Auth
             return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
         }
 
-
-        [HttpGet("callback1")]
+        /*
+          "error": "token_exchange_failed",
+        */
+        [HttpGet("callback")]
         public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state, [FromQuery(Name = "session")] string? sessionId = null)
         {
             try
@@ -129,12 +135,11 @@ namespace kickapi.Controllers.Auth
                         code,
                         ClientId,
                         ClientSecret,
-                        RedirectUri,
+                        RedirectUri + "?session=" + sessionId, // Match exactly
                         state,
                         session.CodeVerifier
                     );
 
-                     
                     if (result.IsSuccess && result.Value != null)
                     {
                         session.AccessToken = result.Value.AccessToken;
@@ -149,13 +154,12 @@ namespace kickapi.Controllers.Auth
                     }
                     // Optionally, redirect to a success page
                     return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
-                    }
+                }
                 catch (Exception ex)
                 {
                     Log($"[Callback] Exception during token exchange for sessionId: {sessionId}. Exception: {ex.Message}\n{ex.StackTrace}");
                     return StatusCode(500, new { error = "token_exchange_failed", message = ex.Message, stackTrace = ex.StackTrace });
                 }
-               
             }
             catch (Exception ex)
             {
