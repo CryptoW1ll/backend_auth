@@ -62,52 +62,60 @@ namespace kickapi.Controllers.Auth
         [HttpGet("callback")]
         public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state, [FromQuery(Name = "session")] string? sessionId = null)
         {
-            // Prefer sessionId from query, fallback to cookie
-            if (string.IsNullOrEmpty(sessionId))
+            try
             {
-                Request.Cookies.TryGetValue(SessionCookieName, out sessionId);
+                // Prefer sessionId from query, fallback to cookie
+                if (string.IsNullOrEmpty(sessionId))
+                {
+                    Request.Cookies.TryGetValue(SessionCookieName, out sessionId);
+                }
+                Log($"[Callback] Received code: {code}, state: {state}, sessionId: {sessionId}");
+                if (string.IsNullOrEmpty(sessionId))
+                {
+                    Log("[Callback] Missing session id");
+                    return BadRequest("Missing session id");
+                }
+                if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
+                {
+                    Log($"[Callback] Session not found for sessionId: {sessionId}");
+                    return BadRequest("Session not found");
+                }
+                if (session.State != state)
+                {
+                    Log($"[Callback] Invalid state for sessionId: {sessionId}. Expected: {session.State}, Received: {state}");
+                    return BadRequest("Invalid state");
+                }
+                session.AuthCode = code;
+                // Exchange code for tokens using PKCE
+                var authGenerator = new KickOAuthGenerator();
+                var result = await authGenerator.ExchangeCodeForTokenAsync(
+                    code,
+                    ClientId,
+                    ClientSecret,
+                    RedirectUri,
+                    state,
+                    session.CodeVerifier
+                );
+                if (result.IsSuccess && result.Value != null)
+                {
+                    session.AccessToken = result.Value.AccessToken;
+                    session.RefreshToken = result.Value.RefreshToken;
+                    session.Scope = result.Value.Scope;
+                    session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
+                    Log($"[Callback] Tokens set for sessionId: {sessionId}. AccessToken: {session.AccessToken != null}, RefreshToken: {session.RefreshToken != null}");
+                }
+                else
+                {
+                    Log($"[Callback] Token exchange failed for sessionId: {sessionId}. Result: {JsonSerializer.Serialize(result)}");
+                }
+                // Optionally, redirect to a success page
+                return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
             }
-            Log($"[Callback] Received code: {code}, state: {state}, sessionId: {sessionId}");
-            if (string.IsNullOrEmpty(sessionId))
+            catch (Exception ex)
             {
-                Log("[Callback] Missing session id");
-                return BadRequest("Missing session id");
+                Log($"[Callback] Exception: {ex.Message}\n{ex.StackTrace}");
+                return StatusCode(500, new { error = "internal_error", message = ex.Message, stackTrace = ex.StackTrace });
             }
-            if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
-            {
-                Log($"[Callback] Session not found for sessionId: {sessionId}");
-                return BadRequest("Session not found");
-            }
-            if (session.State != state)
-            {
-                Log($"[Callback] Invalid state for sessionId: {sessionId}. Expected: {session.State}, Received: {state}");
-                return BadRequest("Invalid state");
-            }
-            session.AuthCode = code;
-            // Exchange code for tokens using PKCE
-            var authGenerator = new KickOAuthGenerator();
-            var result = await authGenerator.ExchangeCodeForTokenAsync(
-                code,
-                ClientId,
-                ClientSecret,
-                RedirectUri,
-                state,
-                session.CodeVerifier
-            );
-            if (result.IsSuccess && result.Value != null)
-            {
-                session.AccessToken = result.Value.AccessToken;
-                session.RefreshToken = result.Value.RefreshToken;
-                session.Scope = result.Value.Scope;
-                session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
-                Log($"[Callback] Tokens set for sessionId: {sessionId}. AccessToken: {session.AccessToken != null}, RefreshToken: {session.RefreshToken != null}");
-            }
-            else
-            {
-                Log($"[Callback] Token exchange failed for sessionId: {sessionId}. Result: {JsonSerializer.Serialize(result)}");
-            }
-            // Optionally, redirect to a success page
-            return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
         }
 
         // 3. Unity polls for result
