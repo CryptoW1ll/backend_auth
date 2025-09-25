@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -106,6 +105,7 @@ namespace kickapi.Controllers.Auth
                 var authGenerator = new KickOAuthGenerator();
                 try
                 {
+                    Log($"[Callback] About to exchange token with: code={code}, clientId={ClientId}, redirectUri={RedirectUri}, state={state}, codeVerifier={session.CodeVerifier}");
                     var result = await authGenerator.ExchangeCodeForTokenAsync(
                         code,
                         ClientId,
