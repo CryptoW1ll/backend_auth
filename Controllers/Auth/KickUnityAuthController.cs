@@ -22,6 +22,12 @@ namespace kickapi.Controllers.Auth
         private const string RedirectUri = "https://backend-auth-d9v1.onrender.com/api/auth/kick/callback";
         private static readonly List<string> DefaultScopes = new() { "user:read", "chat:write" };
 
+        // Simple logger for demonstration (replace with ILogger in production)
+        private void Log(string message)
+        {
+            System.Diagnostics.Debug.WriteLine($"[KickUnityAuthController] {DateTime.UtcNow:O} {message}");
+        }
+
         private class SessionData
         {
             public string? CodeVerifier { get; set; }
@@ -61,12 +67,22 @@ namespace kickapi.Controllers.Auth
             {
                 Request.Cookies.TryGetValue(SessionCookieName, out sessionId);
             }
+            Log($"[Callback] Received code: {code}, state: {state}, sessionId: {sessionId}");
             if (string.IsNullOrEmpty(sessionId))
+            {
+                Log("[Callback] Missing session id");
                 return BadRequest("Missing session id");
+            }
             if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
+            {
+                Log($"[Callback] Session not found for sessionId: {sessionId}");
                 return BadRequest("Session not found");
+            }
             if (session.State != state)
+            {
+                Log($"[Callback] Invalid state for sessionId: {sessionId}. Expected: {session.State}, Received: {state}");
                 return BadRequest("Invalid state");
+            }
             session.AuthCode = code;
             // Exchange code for tokens using PKCE
             var authGenerator = new KickOAuthGenerator();
@@ -84,6 +100,11 @@ namespace kickapi.Controllers.Auth
                 session.RefreshToken = result.Value.RefreshToken;
                 session.Scope = result.Value.Scope;
                 session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
+                Log($"[Callback] Tokens set for sessionId: {sessionId}. AccessToken: {session.AccessToken != null}, RefreshToken: {session.RefreshToken != null}");
+            }
+            else
+            {
+                Log($"[Callback] Token exchange failed for sessionId: {sessionId}. Result: {JsonSerializer.Serialize(result)}");
             }
             // Optionally, redirect to a success page
             return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
@@ -94,11 +115,20 @@ namespace kickapi.Controllers.Auth
         public IActionResult GetStatus()
         {
             if (!Request.Cookies.TryGetValue(SessionCookieName, out var sessionId))
+            {
+                Log("[Polling] No session cookie found in request");
                 return Unauthorized();
+            }
+            Log($"[Polling] SessionID from cookie: {sessionId}");
             if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
+            {
+                Log($"[Polling] Session not found for sessionId: {sessionId}");
                 return Unauthorized();
+            }
+            Log($"[Polling] Session found. AccessToken: {session.AccessToken != null}, AuthCode: {session.AuthCode != null}");
             if (!string.IsNullOrEmpty(session.AccessToken))
             {
+                Log($"[Polling] Returning complete for sessionId: {sessionId}");
                 return Ok(new
                 {
                     status = "complete",
@@ -110,8 +140,10 @@ namespace kickapi.Controllers.Auth
             }
             if (!string.IsNullOrEmpty(session.AuthCode))
             {
+                Log($"[Polling] Returning auth_code for sessionId: {sessionId}");
                 return Ok(new { status = "auth_code", code = session.AuthCode });
             }
+            Log($"[Polling] Returning pending for sessionId: {sessionId}");
             return Ok(new { status = "pending" });
         }
     }
