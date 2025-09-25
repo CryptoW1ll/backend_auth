@@ -57,15 +57,6 @@ app.UseSwaggerUI();
 app.UseCors();
 app.UseSession();
 
-// Log session and request info for debugging
-app.Use(async (context, next) =>
-{
-    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("SessionDebug");
-    logger.LogInformation("Cookies: {Cookies}", context.Request.Headers["Cookie"].ToString() ?? string.Empty);
-    logger.LogInformation("Session ID: {SessionID}", context.Session.Id);
-    logger.LogInformation("Session exists: {SessionExists}", context.Session.IsAvailable);
-    await next();
-});
 
 app.MapControllers();
 
@@ -118,4 +109,3 @@ app.Use(async (context, next) =>
 });
 
 app.Run();
-DotNetEnv.Env.Load();
