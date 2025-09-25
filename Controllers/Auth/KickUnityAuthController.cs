@@ -19,7 +19,7 @@ namespace kickapi.Controllers.Auth
         private const string SessionCookieName = "kick_session_id";
         private const string ClientId = "01K5QJW9QDC6TJS4DB55KQ5CPP";
         private const string ClientSecret = ""; // Set this securely in production
-        private const string RedirectUri = "https://backend-auth-z6z0.onrender.com/api/auth/kick/callback";
+        private const string RedirectUri = "https://backend-auth-d9v1.onrender.com/api/auth/kick/callback";
         private static readonly List<string> DefaultScopes = new() { "user:read", "chat:write" };
 
         private class SessionData
