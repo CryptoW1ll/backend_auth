@@ -61,7 +61,6 @@ app.UseSession();
 app.Use(async (context, next) =>
 {
     var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("SessionDebug");
-    logger.LogInformation("Origin: {Origin}", context.Request.Headers["Origin"].ToString() ?? string.Empty);
     logger.LogInformation("Cookies: {Cookies}", context.Request.Headers["Cookie"].ToString() ?? string.Empty);
     logger.LogInformation("Session ID: {SessionID}", context.Session.Id);
     logger.LogInformation("Session exists: {SessionExists}", context.Session.IsAvailable);
