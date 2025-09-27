@@ -11,9 +11,9 @@ builder.Services.AddSwaggerGen();
 // CORS configuration
 var allowedOrigins = new[]
 {
-    "http://localhost:5173",
-    "https://echelonstudio.co.nz"
+    "http://localhost:5173"
 };
+
 var frontendUrl = builder.Configuration["FRONTEND_URL"];
 if (!string.IsNullOrEmpty(frontendUrl))
 {

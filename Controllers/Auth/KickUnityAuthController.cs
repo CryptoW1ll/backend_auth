@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
-using System;
 using System.Collections.Concurrent;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using KickLib.Auth;
 using System.Text.Json;
 
@@ -19,6 +15,7 @@ namespace kickapi.Controllers.Auth
         private const string ClientId = "01K5QJW9QDC6TJS4DB55KQ5CPP";
         private static readonly string ClientSecret = Environment.GetEnvironmentVariable("KICK_CLIENT_SECRET") ?? "";
         private const string RedirectUri = "https://backend-auth-d9v1.onrender.com/api/auth/kick/callback";
+        //private const string WebhookEndpoint = "https://backend-auth-d9v1.onrender.com/api/kick/webhook";
         private static readonly List<string> DefaultScopes = new() { "user:read", "chat:write" };
 
         // Simple logger for demonstration (replace with ILogger in production)
@@ -37,6 +34,15 @@ namespace kickapi.Controllers.Auth
             public long? ExpiresAt { get; set; }
             public string? AuthCode { get; set; }
         }
+
+        // struct AccessToken1
+        // {
+        //     public string AccessToken { get; set; } = string.Empty;
+        //     public string RefreshToken { get; set; } = string.Empty;
+        //     public Type Type { get; set; } = AccessToken1.OAuth;
+        //     public string Scope { get; set; } = string.Empty;
+        //     public int ExpiresIn { get; set; }
+        // }
 
         // 1. Unity requests the OAuth URL
         [HttpGet("auth")]
@@ -62,36 +68,36 @@ namespace kickapi.Controllers.Auth
         /*
          missing session id
         */
-        [HttpGet("callback1")]
-        public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state)
-        {
-            if (!Request.Cookies.TryGetValue(SessionCookieName, out var sessionId))
-                return BadRequest("Missing session cookie");
-            if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
-                return BadRequest("Session not found");
-            if (session.State != state)
-                return BadRequest("Invalid state");
-            session.AuthCode = code;
-            // Exchange code for tokens using PKCE
-            var authGenerator = new KickOAuthGenerator();
-            var result = await authGenerator.ExchangeCodeForTokenAsync(
-                code,
-                ClientId,
-                ClientSecret,
-                RedirectUri,
-                state,
-                session.CodeVerifier
-            );
-            if (result.IsSuccess && result.Value != null)
-            {
-                session.AccessToken = result.Value.AccessToken;
-                session.RefreshToken = result.Value.RefreshToken;
-                session.Scope = result.Value.Scope;
-                session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
-            }
-            // Optionally, redirect to a success page
-            return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
-        }
+        // [HttpGet("callback1")]
+        // public async Task<IActionResult> OAuthCallback([FromQuery] string code, [FromQuery] string state)
+        // {
+        //     if (!Request.Cookies.TryGetValue(SessionCookieName, out var sessionId))
+        //         return BadRequest("Missing session cookie");
+        //     if (!sessionStore.TryGetValue(sessionId, out var session) || session == null)
+        //         return BadRequest("Session not found");
+        //     if (session.State != state)
+        //         return BadRequest("Invalid state");
+        //     session.AuthCode = code;
+        //     // Exchange code for tokens using PKCE
+        //     var authGenerator = new KickOAuthGenerator();
+        //     var result = await authGenerator.ExchangeCodeForTokenAsync(
+        //         code,
+        //         ClientId,
+        //         ClientSecret,
+        //         RedirectUri,
+        //         state,
+        //         session.CodeVerifier
+        //     );
+        //     if (result.IsSuccess && result.Value != null)
+        //     {
+        //         session.AccessToken = result.Value.AccessToken;
+        //         session.RefreshToken = result.Value.RefreshToken;
+        //         session.Scope = result.Value.Scope;
+        //         session.ExpiresAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + (result.Value.ExpiresIn * 1000);
+        //     }
+        //     // Optionally, redirect to a success page
+        //     return Content("<h2>Kick authentication complete. You may return to Unity.</h2>", "text/html");
+        // }
 
         /*
           "error": "token_exchange_failed",
@@ -192,5 +198,12 @@ namespace kickapi.Controllers.Auth
             }
             return Ok(new { status = "pending" });
         }
+
     }
 }
+
+/*
+Add chat:write Scope: In your app's settings, go to "OAuth & Permissions." Under "Bot Token Scopes," add the chat:write scope. If you intend to post to public channels, you might also consider chat:write.public.
+Install/Reinstall App: Install or reinstall your app to your workspace to grant the newly added permissions.
+Retrieve Bot User OAuth Access Token: After installation, locate the "Bot User OAuth Access Token" in the "OAuth & Permissions" section. This token, starting with xoxb-, is essential for authenticating your API requests.
+*/
