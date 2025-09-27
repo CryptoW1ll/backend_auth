@@ -13,26 +13,36 @@ namespace backend_auth.Controllers
     public class KickWebhookController : ControllerBase
     {
 
+        private static readonly string ClientSecret = Environment.GetEnvironmentVariable("KICK_CLIENT_SECRET") ?? "";
+
         // Simple logger for demonstration (replace with ILogger in production)
         private void Log(string message)
         {
-            Console.WriteLine($"[KickUnityAuthController] {DateTime.UtcNow:O} {message}");
+            Console.WriteLine($"[KickWebhookController] {DateTime.UtcNow:O} {message}");
         }
 
-        // webhook endpoint example
-        [HttpPost("webhook")] //
-        public IActionResult Webhook([FromBody] WebhookEvent webhookEvent)
+        [HttpPost("webhook")]
+        public IActionResult Webhook([FromBody] JsonElement body)
         {
-            // Handle the webhook event
-            Log($"[Webhook] Received event: {JsonSerializer.Serialize(webhookEvent)}");
+            var expectedSecret = ClientSecret;
+            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(expectedSecret) || authHeader != $"Bearer {expectedSecret}")
+            {
+                Log("[Webhook] Unauthorized webhook request.");
+                return Unauthorized();
+            }
+
+            // Handle verification challenge
+            if (body.TryGetProperty("challenge", out var challenge))
+            {
+                Log("[Webhook] Responding to verification challenge.");
+                return Ok(new { challenge = challenge.GetString() });
+            }
+
+            // Handle the webhook event as before
+            Log($"[Webhook] Received event: {body}");
             return Ok();
-        }
-
-        // Minimal WebhookEvent class definition (customize as needed)
-        public class WebhookEvent
-        {
-            public string? Type { get; set; }
-            public JsonElement? Data { get; set; }
         }
     }
 
